@@ -143,10 +143,11 @@ export class DecisionAgent extends Agent {
 
     try {
       // Now save it to the actual Decision Log.
-      const decisionId = await this.saveApprovedDecision(decision);
+      // "saved" is false when an identical decision is already recorded.
+      const { decisionId, saved } = await this.saveApprovedDecision(decision);
 
       // Final state.
-      decision.status = "approved";
+      decision.status = saved ? "approved" : "duplicate";
       decision.approved_at = new Date().toISOString();
 
       await this.ctx.storage.put(`pending:${decision.id}`, decision);
@@ -154,6 +155,7 @@ export class DecisionAgent extends Agent {
       return {
         ok: true,
         decisionId,
+        duplicate: !saved,
       };
     } catch (error) {
       // If saving to DecisionLog failed, return the decision to pending so the user can try again.
@@ -230,6 +232,12 @@ export class DecisionAgent extends Agent {
       throw new Error("Failed to save approved decision.");
     }
 
-    return decision.id;
+    // The DecisionLog reports whether a new record was actually created.
+    const result = await response.json();
+
+    return {
+      decisionId: decision.id,
+      saved: result.saved !== false,
+    };
   }
 }

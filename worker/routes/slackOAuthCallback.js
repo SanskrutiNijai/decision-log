@@ -30,17 +30,24 @@ function expiredCookie(name, secure) {
     .join("; ");
 }
 
-// Reply and expire both cookies so they can only be used once.
-function reply(request, message, status) {
+// Send the browser back to the app and expire both cookies so they can only be used once.
+// The app shows the result page (see SlackStatus.jsx). A relative Location keeps
+// the user on the same address they came from.
+function redirectToApp(request, query) {
   const secure =
     new URL(request.url).protocol === "https:" ||
     request.headers.get("X-Forwarded-Proto") === "https";
 
-  const headers = new Headers({ "Content-Type": "text/plain" });
+  const headers = new Headers({ Location: `/?${query}` });
   headers.append("Set-Cookie", expiredCookie(STATE_COOKIE, secure));
   headers.append("Set-Cookie", expiredCookie(REDIRECT_COOKIE, secure));
 
-  return new Response(message, { status, headers });
+  return new Response(null, { status: 302, headers });
+}
+
+// Error codes are short and fixed; the app turns them into friendly messages.
+function fail(request, reason) {
+  return redirectToApp(request, `slack=error&reason=${reason}`);
 }
 
 export async function handleSlackOAuthCallback(request, env) {
@@ -54,30 +61,30 @@ export async function handleSlackOAuthCallback(request, env) {
   const cookieState = getCookie(request, STATE_COOKIE);
 
   if (!state || !cookieState || state !== cookieState) {
-    return reply(
-      request,
-      "Invalid or expired Slack OAuth state. Please try connecting again.",
-      400,
-    );
+    return fail(request, "invalid_state");
   }
 
   if (error) {
-    return reply(request, `Slack authorization failed: ${error}`, 400);
+    console.error("Slack authorization failed:", error);
+
+    return fail(request, error === "access_denied" ? "denied" : "slack_failed");
   }
 
   if (!code) {
-    return reply(request, "Missing Slack OAuth code.", 400);
+    return fail(request, "missing_code");
   }
 
   if (!env.SLACK_CLIENT_ID || !env.SLACK_CLIENT_SECRET) {
-    return reply(request, "Slack OAuth credentials are not configured.", 500);
+    console.error("Slack OAuth credentials are not configured.");
+
+    return fail(request, "not_configured");
   }
 
   // Must be identical to the redirect_uri used when the install started.
   const savedRedirect = getCookie(request, REDIRECT_COOKIE);
 
   if (!savedRedirect) {
-    return reply(request, "Missing redirect information. Please try connecting again.", 400);
+    return fail(request, "missing_redirect");
   }
 
   const redirectUri = decodeURIComponent(savedRedirect);
@@ -102,13 +109,13 @@ export async function handleSlackOAuthCallback(request, env) {
   if (!data.ok) {
     console.error("Slack OAuth error:", data);
 
-    return reply(request, `Slack OAuth failed: ${data.error || "Unknown error"}`, 400);
+    return fail(request, "slack_failed");
   }
 
   const teamId = data.team?.id;
 
   if (!teamId) {
-    return reply(request, "Slack OAuth response did not include a workspace ID.", 400);
+    return fail(request, "no_team");
   }
 
   // Store the OAuth installation inside the DecisionAgent belonging to this Slack workspace.
@@ -130,5 +137,5 @@ export async function handleSlackOAuthCallback(request, env) {
     scope: data.scope,
   });
 
-  return reply(request, "Slack connected successfully. You can close this window.", 200);
+  return redirectToApp(request, "slack=connected");
 }

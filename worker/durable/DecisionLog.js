@@ -92,6 +92,25 @@ export class DecisionLog {
       return false;
     }
 
+    // NEW: Skip if a decision with the same summary is already saved
+    // (the same text posted again in Slack).
+    const normalizedSummary = String(decision.summary).trim().replace(/\.+$/, "").toLowerCase();
+
+    const duplicate = this.sql
+      .exec(
+        `
+          SELECT id
+          FROM decisions
+          WHERE lower(rtrim(trim(summary), '.')) = ?
+        `,
+        normalizedSummary,
+      )
+      .toArray();
+
+    if (duplicate.length > 0) {
+      return false;
+    }
+
     // Create a source record for the Slack message.
     this.sql.exec(
       `

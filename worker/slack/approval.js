@@ -69,9 +69,22 @@ export async function handleSlackInteraction(request, env) {
       return json({ error: "Unknown Slack action." }, 400);
     }
 
-    // Update the original Slack message so the user can see the decision was handled.
+    // Update the original Slack message so the user can see what happened.
     if (payload.response_url) {
       const approved = action.action_id === "approve_decision";
+
+      let message;
+
+      if (result?.alreadyProcessed) {
+        message = "ℹ️ *This decision was already handled.*";
+      } else if (!approved) {
+        message = "❌ *Decision rejected and not saved.*";
+      } else if (result?.duplicate) {
+        message =
+          "ℹ️ *This decision is already recorded in the Decision Log, so it wasn't added again.*";
+      } else {
+        message = "✅ *Decision approved and saved to Decision Log.*";
+      }
 
       await fetch(payload.response_url, {
         method: "POST",
@@ -81,16 +94,15 @@ export async function handleSlackInteraction(request, env) {
         body: JSON.stringify({
           replace_original: true,
 
-          text: approved ? "Decision approved and saved." : "Decision rejected.",
+          // Plain-text fallback (used in notifications), without the bold marks.
+          text: message.replace(/\*/g, ""),
 
           blocks: [
             {
               type: "section",
               text: {
                 type: "mrkdwn",
-                text: approved
-                  ? "✅ *Decision approved and saved to Decision Log.*"
-                  : "❌ *Decision rejected and not saved.*",
+                text: message,
               },
             },
           ],

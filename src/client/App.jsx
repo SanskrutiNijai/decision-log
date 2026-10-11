@@ -2,17 +2,37 @@ import { useState } from "react";
 import NotesForm from "./components/NotesForm";
 import DecisionList from "./components/DecisionList";
 import Chat from "./components/Chat";
+import SlackStatus from "./components/SlackStatus";
 import "./styles.css";
+
+// Reads the result of the Slack install from the URL (?slack=connected or ?slack=error&reason=...).
+function readSlackResult() {
+  const params = new URLSearchParams(window.location.search);
+  const status = params.get("slack");
+
+  if (status !== "connected" && status !== "error") {
+    return null;
+  }
+
+  return { status, reason: params.get("reason") };
+}
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("notes");
+  const [slackResult, setSlackResult] = useState(readSlackResult);
 
-  // Send the address the browser is on, so Slack redirects back to it
-  // (the Worker behind a tunnel only sees localhost).
+  // Open the Slack install in a new tab. The browser sends its own address
+  // so Slack redirects back to it (the Worker behind a tunnel only sees localhost).
   function connectSlack() {
     const origin = encodeURIComponent(window.location.origin);
 
-    window.location.href = `/api/slack/install?origin=${origin}`;
+    window.open(`/api/slack/install?origin=${origin}`, "_blank", "noopener,noreferrer");
+  }
+
+  // Leave the result page and show the normal app.
+  function continueToApp() {
+    window.history.replaceState({}, "", window.location.pathname);
+    setSlackResult(null);
   }
 
   return (
@@ -31,37 +51,50 @@ export default function App() {
         </button>
       </header>
 
-      <nav className="tabs">
-        <button
-          type="button"
-          className={activeTab === "notes" ? "active" : ""}
-          onClick={() => setActiveTab("notes")}
-        >
-          Add Notes
-        </button>
+      {slackResult ? (
+        <main className="content">
+          <SlackStatus
+            status={slackResult.status}
+            reason={slackResult.reason}
+            onContinue={continueToApp}
+            onRetry={connectSlack}
+          />
+        </main>
+      ) : (
+        <>
+          <nav className="tabs">
+            <button
+              type="button"
+              className={activeTab === "notes" ? "active" : ""}
+              onClick={() => setActiveTab("notes")}
+            >
+              Add Notes
+            </button>
 
-        <button
-          type="button"
-          className={activeTab === "decisions" ? "active" : ""}
-          onClick={() => setActiveTab("decisions")}
-        >
-          Decisions
-        </button>
+            <button
+              type="button"
+              className={activeTab === "decisions" ? "active" : ""}
+              onClick={() => setActiveTab("decisions")}
+            >
+              Decisions
+            </button>
 
-        <button
-          type="button"
-          className={activeTab === "chat" ? "active" : ""}
-          onClick={() => setActiveTab("chat")}
-        >
-          Chat
-        </button>
-      </nav>
+            <button
+              type="button"
+              className={activeTab === "chat" ? "active" : ""}
+              onClick={() => setActiveTab("chat")}
+            >
+              Chat
+            </button>
+          </nav>
 
-      <main className="content">
-        {activeTab === "notes" && <NotesForm />}
-        {activeTab === "decisions" && <DecisionList />}
-        {activeTab === "chat" && <Chat />}
-      </main>
+          <main className="content">
+            {activeTab === "notes" && <NotesForm />}
+            {activeTab === "decisions" && <DecisionList />}
+            {activeTab === "chat" && <Chat />}
+          </main>
+        </>
+      )}
     </div>
   );
 }

@@ -65,7 +65,10 @@ export async function handleSlackInstall(request, env) {
   // so it is remembered in a cookie alongside the state.
   const headers = new Headers({ Location: slackUrl });
   headers.append("Set-Cookie", makeCookie(STATE_COOKIE, state, secure));
-  headers.append("Set-Cookie", makeCookie(REDIRECT_COOKIE, encodeURIComponent(redirectUri), secure));
+  headers.append(
+    "Set-Cookie",
+    makeCookie(REDIRECT_COOKIE, encodeURIComponent(redirectUri), secure),
+  );
 
   return new Response(null, { status: 302, headers });
 }
