@@ -51,10 +51,11 @@ button:disabled {
 
 .header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 32px;
-  padding: 28px 52px;
+  gap: 16px 32px;
+  padding: 18px 52px;
   background: #ffffff;
   border-bottom: 1px solid #e6eaf0;
 }
@@ -140,6 +141,55 @@ button:disabled {
 
   font-size: 14px;
   font-weight: 800;
+}
+
+/* =========================================================
+   HEADER EXAMPLE (static, for quick testing)
+   ========================================================= */
+
+.header-example {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+
+  flex: 1 1 420px;
+  max-width: 640px;
+  padding: 10px 12px;
+
+  background: #faf5fb;
+  border: 1px solid #eadcec;
+  border-radius: 9px;
+}
+
+.example-label {
+  flex-shrink: 0;
+
+  padding: 3px 10px;
+
+  border-radius: 999px;
+
+  background: #611f69;
+  color: #ffffff;
+
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.header-example-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  color: #475467;
+
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.header-example-body strong {
+  color: #172033;
 }
 
 /* =========================================================
@@ -705,5 +755,12 @@ textarea {
   .slack-status {
     margin-top: 16px;
     padding: 28px 20px;
+  }
+
+  .header-example {
+    flex: none;
+    width: 100%;
+    flex-direction: column;
+    gap: 8px;
   }
 }

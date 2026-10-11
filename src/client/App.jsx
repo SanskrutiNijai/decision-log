@@ -43,6 +43,21 @@ export default function App() {
           <p>Remember what your team decided — and why.</p>
         </div>
 
+        <div className="header-example">
+          <span className="example-label">Try it</span>
+
+          <div className="header-example-body">
+            <div>
+              <strong>Meeting Title:</strong> Frontend Meeting
+            </div>
+            <div>
+              <strong>Meeting Notes:</strong> We decided to build the dashboard in React with Vite,
+              because the team already knows React. Alternatives considered: Vue and Svelte. Owner:
+              Sneha. Review in March.
+            </div>
+          </div>
+        </div>
+
         <button type="button" className="slack-button" onClick={connectSlack}>
           <span className="slack-icon" aria-hidden="true">
             #
